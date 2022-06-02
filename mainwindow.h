@@ -23,6 +23,7 @@ public:
     ~MainWindow();
 
     bool loadRoutes(const QString &f);
+    Graph* getGraph();
 public slots:
     void fileNew();
 

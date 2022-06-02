@@ -70,11 +70,11 @@ public:
     QString getTrayName(int start, int end);
     void addEdge(Edge);
     Edge* getEdge(const QString&);
-    QMap<QString, Edge*> getEdgeMap();
+    std::map<QString, Edge*> getEdgeMap();
 
 private:
     std::vector<std::vector<Edge>> head;
-    QMap<QString, Edge*> edgeMap;
+    std::map<QString, Edge*> edgeMap;
 };
 
 #endif // GRAPH_H

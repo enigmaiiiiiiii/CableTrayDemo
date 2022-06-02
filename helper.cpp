@@ -1,4 +1,5 @@
 #include "helper.h"
+
 #include <QStandardItemModel>
 #include <QTextStream>
 #include <QRandomGenerator>
@@ -81,4 +82,30 @@ void Helper::saveAsCsv(QStandardItemModel *model, const QString &fileName)
     }
 //    load(fileName);
     return;
+}
+
+QList<QList<int>> Helper::listForGraph(int nodeCount)
+{
+    QList<QList<int>> ret(nodeCount, QList<int>(nodeCount, INT16_MAX));
+    for (int i = 0; i < nodeCount; ++i)
+    {
+        ret[i][i] = 0;
+        if (i < nodeCount - 1)
+        {
+            ret[i][i + 1] = QRandomGenerator::global()->generate() % 100;
+            ret[i + 1][i] = ret[i][i + 1];
+        }
+        int n = 3;
+        for (int j = i + 1; j < nodeCount; ++j )
+        {
+            if (n == 0) break;
+            if (QRandomGenerator::global()->generate() % 3 == 0)
+            {
+                ret[i][j] = QRandomGenerator::global()->generate() % 100;
+                ret[j][i] = ret[i][j];
+                n--;
+            }
+        }
+    }
+    return ret;
 }

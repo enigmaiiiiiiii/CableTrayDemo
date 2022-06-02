@@ -2,6 +2,7 @@
 #define INFOWINDOW_H
 
 #include <QWidget>
+#include <QWindow>
 #include "graph.h"
 
 class QTableView;

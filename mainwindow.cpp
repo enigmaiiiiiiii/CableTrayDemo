@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "route.h"
 #include "infowindow.h"
+#include "helper.h"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -42,14 +43,16 @@ MainWindow::MainWindow(QWidget *parent)
             << "终点"
             << "长度"
             << "路径";
-    QList<QList<int>> graphInit = {
-        {0, 2, INT16_MAX, 5, INT16_MAX, INT16_MAX},
-        {2, 0, 1, 6, 4, INT16_MAX},
-        {INT16_MAX, INT16_MAX, 0, INT16_MAX, 5, 8},
-        {5, 6, INT16_MAX, 0, 2, INT16_MAX},
-        {INT16_MAX, 4, 5, 2, 0, 6},
-        {INT16_MAX, INT16_MAX, 8, INT16_MAX, 6, 0}
-    };
+//    QList<QList<int>> graphInit = {
+//        {0, 2, INT16_MAX, 5, INT16_MAX, INT16_MAX},
+//        {2, 0, 1, 6, 4, INT16_MAX},
+//        {INT16_MAX, INT16_MAX, 0, INT16_MAX, 5, 8},
+//        {5, 6, INT16_MAX, 0, 2, INT16_MAX},
+//        {INT16_MAX, 4, 5, 2, 0, 6},
+//        {INT16_MAX, INT16_MAX, 8, INT16_MAX, 6, 0}
+//    };
+
+    QList<QList<int>> graphInit = Helper::listForGraph(10);
     graph = new Graph(graphInit);
 
     // TabWidget
@@ -454,7 +457,7 @@ void MainWindow::setupDebugActions()
 
 void MainWindow::GraphView()
 {
-    InfoWindow *graphInfo = new InfoWindow();
+    InfoWindow *graphInfo = new InfoWindow(this);
 
     graphInfo->show();
 }
@@ -591,6 +594,7 @@ void MainWindow::buildGraphfromCsv()
 void MainWindow::generateRoutes()
 {
     QTableView *tableView = static_cast<QTableView *>(tabWidget->currentWidget());
+    if (!tableView) return;
     QStandardItemModel *model = static_cast<QStandardItemModel*>(tableView->model());
 
     for (int i = 0; i < model->rowCount(); ++i)
@@ -599,16 +603,18 @@ void MainWindow::generateRoutes()
         QString edge2 = model->data(model->index(i, 1)).toString();
 
         Edge* startEdge = graph->getEdge(edge1);
-        Edge* endEdge = graph->getEdge(edge2);
+        qDebug() << "edge2 address: "
+                 << graph->getEdge(edge2);
+        Edge* endEdge = graph->getEdge(edge2);  //
         if (!startEdge || !endEdge) continue;
 
-        Route *route = new Route(startEdge, endEdge);
+        Route route(startEdge, endEdge);
 
-        route->setGraph(graph);
-        route->generateRoute();
+        route.setGraph(graph);
+        route.generateRoute();
 
-        model->setData(model->index(i, 2), route->getLength());
-        model->setData(model->index(i, 3), route->getPath());
+        model->setData(model->index(i, 2), route.getLength());
+        model->setData(model->index(i, 3), route.getPath());
     }
 }
 
@@ -641,3 +647,8 @@ void MainWindow::insertRow()
 //    }
 
 //}
+
+Graph* MainWindow::getGraph()
+{
+    return graph;
+}

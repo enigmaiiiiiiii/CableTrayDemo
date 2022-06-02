@@ -16,6 +16,7 @@ public:
     static Graph GenerateRandomGraph(int nodeNum);
     static void saveAsCsv(QStandardItemModel *model, const QString &fileName);
     static void graphSaveAsCsv(Graph *graph, const QString &fileName);
+    static QList<QList<int>> listForGraph(int nodeCount);
 };
 
 #endif // HELPER_H

@@ -1,6 +1,7 @@
 #include "graph.h"
 #include <QString>
 #include <QSet>
+#include <map>
 
 // Node 
 int Node::No = 0;
@@ -74,7 +75,7 @@ Graph::Graph(std::vector<Edge> &edges)
 
     for (auto &edge : edges)
     {
-        edgeMap.insert(edge.getName(), &edge);
+        edgeMap.insert({edge.getName(), &edge});
         int start = edge.getNode1();
         int end   = edge.getNode2();
 
@@ -107,7 +108,7 @@ Graph::Graph(QList<QList<int>> &edges)
 
             head[i][j] = Edge(i, j, edges[i][j], name);
             head[j][i] = Edge(i, j, edges[i][j], name);
-            if (edgeMap.find(name) == edgeMap.end()) edgeMap.insert(name, &head[i][j]);
+            if (edgeMap.find(name) == edgeMap.end()) edgeMap.insert({name, &head[i][j]});
         }
     }
 }
@@ -117,7 +118,7 @@ void Graph::addEdge(Edge edge)
     int start = edge.getNode1();
     int end   = edge.getNode2();
     head[start][end] = edge;
-    edgeMap.insert(edge.getName(), &edge);
+    edgeMap.insert({edge.getName(), &edge});
 }
 
 std::vector<std::vector<Edge>> Graph::getHead(){ return head; }
@@ -134,7 +135,7 @@ Edge* Graph::getEdge(const QString& name)
     return edgeMap[name];
 }
 
-QMap<QString, Edge*> Graph::getEdgeMap()
+std::map<QString, Edge*> Graph::getEdgeMap()
 {
     return edgeMap;
 }
