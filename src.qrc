@@ -26,5 +26,6 @@
         <file>image/zoomin.png</file>
         <file>image/zoomout.png</file>
         <file>image/smallicon.png</file>
+        <file>qss/style.qss</file>
     </qresource>
 </RCC>

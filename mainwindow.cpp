@@ -33,47 +33,48 @@
 #include <QInputDialog>
 #include <QTabWidget>
 #include <QMetaObject>
+#include <QSplitter>
+#include <QTableWidgetItem>
 
 const QString rsrcPath = ":/image";
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    headers << "起点"
-            << "终点"
-            << "长度"
-            << "路径";
-//    QList<QList<int>> graphInit = {
-//        {0, 2, INT16_MAX, 5, INT16_MAX, INT16_MAX},
-//        {2, 0, 1, 6, 4, INT16_MAX},
-//        {INT16_MAX, INT16_MAX, 0, INT16_MAX, 5, 8},
-//        {5, 6, INT16_MAX, 0, 2, INT16_MAX},
-//        {INT16_MAX, 4, 5, 2, 0, 6},
-//        {INT16_MAX, INT16_MAX, 8, INT16_MAX, 6, 0}
-//    };
+    // qssfile
+    QFile *qssFile = new QFile(":/qss/style.qss", this);
+    qssFile->open(QFile::ReadOnly);
+    QString styleSheet = tr(qssFile->readAll());
+    setStyleSheet(styleSheet);
+    qssFile->close();
 
-    QList<QList<int>> graphInit = Helper::listForGraph(10);
+    // graph
+    QList<QList<int>> graphInit = Helper::listForGraph(20);
     graph = new Graph(graphInit);
 
-    // TabWidget
-    tabWidget = new QTabWidget(this);
-    tabWidget->setTabsClosable(true);
-
-    setCentralWidget(tabWidget);
-    tabWidget->setVisible(true);
-    connect(tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::tabClose);
-    showMaximized();
+    // maintab
+    mainTab = new QTabWidget(this);
+    mainTab->setTabsClosable(true);
+    mainTab->setVisible(true);
+    setCentralWidget(mainTab);
+    connect(mainTab, &QTabWidget::tabCloseRequested, this, &MainWindow::tabClose);
 
     // 文件动作
     setupFileActions();
     setupEditActions();
-    setupDebugActions();
-    setupContextMenuActions();
     setupDockWindow();
-
+    setupContextMenuActions();
     setCurrentFileName(QString());
+    readEdgeInfo();
 
+    showMaximized();
+
+    // 功能动作
     setupRouteActions();
+    headers << "起点"
+            << "终点"
+            << "长度"
+            << "路径";
 }
 
 MainWindow::~MainWindow() {}
@@ -194,16 +195,46 @@ void MainWindow::setupContextMenuActions()
     connect(actionInsertRow, &QAction::triggered, this, &MainWindow::insertRow);
 }
 
+void MainWindow::setupDockWindow()
+{
+    QDockWidget *attrDock = new QDockWidget(tr("特性"), this);
+    QTreeWidget *dockTree = new QTreeWidget(this);
+
+    QStringList headers;
+    headers << "attr"
+            << "val";
+    dockTree->setHeaderLabels(headers);
+    attrDock->setWidget(dockTree);
+    addDockWidget(Qt::LeftDockWidgetArea, attrDock);
+
+    QAction *a = attrDock->toggleViewAction();
+    a->setShortcut(Qt::CTRL | Qt::Key_1);
+    attrDock->hide();
+
+    addAction(a);
+
+    QDockWidget *infoDock = new QDockWidget(tr(""), this);
+    addDockWidget(Qt::RightDockWidgetArea, infoDock);
+    infoWidget = new InfoWindow(this);
+    infoDock->setWidget(infoWidget);
+
+    QAction *b = infoDock->toggleViewAction();
+    b->setShortcut(Qt::CTRL | Qt::Key_2);
+    addAction(b);
+
+//    resizeDocks({attrDock, infoDock}, {geometry().width(), geometry().width()},Qt::Horizontal);
+}
+
 void MainWindow::fileNew()
 {
-    QTableView *tableView = new QTableView(tabWidget);
-    QStandardItemModel *model = new QStandardItemModel(tabWidget);
+    QTableView *tableView = new QTableView(mainTab);
+    QStandardItemModel *model = new QStandardItemModel(mainTab);
 
     model->setHorizontalHeaderLabels(headers);
     tableView->setModel(model);
 
-    int cur = tabWidget->addTab(tableView, "");
-    tabWidget->setCurrentIndex(cur);
+    int cur = mainTab->addTab(tableView, "");
+    mainTab->setCurrentIndex(cur);
     setCurrentFileName("");
 }
 
@@ -248,13 +279,13 @@ bool MainWindow::loadRoutes(const QString &f)
         QTableView *curView;
         QStandardItemModel *curModel;
         if (f == fileName) {  // 重新打开
-            curView = static_cast<QTableView *>(tabWidget->currentWidget());
+            curView = static_cast<QTableView *>(mainTab->currentWidget());
             curModel = static_cast<QStandardItemModel *>(curView->model());
         } else {  //
-            curModel = new QStandardItemModel(tabWidget);
+            curModel = new QStandardItemModel(mainTab);
             curModel->setHorizontalHeaderLabels(headers);
 
-            curView = new QTableView(tabWidget);
+            curView = new QTableView(mainTab);
             curView->setModel(curModel);
         }
 
@@ -296,8 +327,8 @@ bool MainWindow::loadRoutes(const QString &f)
         }
 
         // 添加标签
-        int cur = tabWidget->addTab(curView, QFileInfo(f).baseName()); // tab index
-        tabWidget->setCurrentIndex(cur);
+        int cur = mainTab->addTab(curView, QFileInfo(f).baseName()); // tab index
+        mainTab->setCurrentIndex(cur);
     }
 
     setCurrentFileName(f);
@@ -317,8 +348,8 @@ void MainWindow::setCurrentFileName(const QString &f)
     else
         shownName = QFileInfo(fileName).baseName();
 
-    int cur = tabWidget->currentIndex();
-    tabWidget->setTabText(cur, shownName);
+    int cur = mainTab->currentIndex();
+    mainTab->setTabText(cur, shownName);
     setWindowModified(false);
 }
 
@@ -336,7 +367,7 @@ bool MainWindow::fileSave()
         return false;
     }
 
-    QTableView *tableView = static_cast<QTableView *>(tabWidget->currentWidget());
+    QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
     QStandardItemModel *model = static_cast<QStandardItemModel *>(tableView->model());
 
     QTextStream out(&file);
@@ -424,60 +455,23 @@ void MainWindow::tabClose(const int &index)
         return;
     }
 
-    QWidget *tabItem = tabWidget->widget(index);
+    QWidget *tabItem = mainTab->widget(index);
     // Removes the tab at position index from this stack of widgets.
     // The page widget itself is not deleted.
-    tabWidget->removeTab(index);
+    mainTab->removeTab(index);
 
     delete tabItem;
 }
 
 void MainWindow::tabCreate()
 {
-    QTableView *tableView = new QTableView(tabWidget);
-    QStandardItemModel *model = new QStandardItemModel(tabWidget);
+    QTableView *tableView = new QTableView(mainTab);
+    QStandardItemModel *model = new QStandardItemModel(mainTab);
     model->setHorizontalHeaderLabels(headers);
     tableView->setModel(model);
 
-    int cur = tabWidget->addTab(tableView, fileName); // tab index
-    tabWidget->setCurrentIndex(cur);
-}
-
-void MainWindow::setupDebugActions()
-{
-    QMenu *menu = menuBar()->addMenu("Debug");
-    QToolBar *tb = addToolBar("debug");
-    QAction *action = new QAction(QIcon(rsrcPath + "/smallicon.png"), tr("Debug"), this);
-
-    action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_D));
-    connect(action, &QAction::triggered, this, &MainWindow::GraphView);
-    menu->addAction(action);
-    tb->addAction(action);
-}
-
-void MainWindow::GraphView()
-{
-    InfoWindow *graphInfo = new InfoWindow(this);
-
-    graphInfo->show();
-}
-
-void MainWindow::setupDockWindow()
-{
-    QDockWidget *dock = new QDockWidget(tr("特性"), this);
-    QTreeWidget *dockTree = new QTreeWidget(this);
-
-    QStringList headers;
-    headers << "attr"
-            << "val";
-    dockTree->setHeaderLabels(headers);
-    dock->setWidget(dockTree);
-    addDockWidget(Qt::LeftDockWidgetArea, dock);
-    dock->hide();
-
-    QAction *a = dock->toggleViewAction();
-    a->setShortcut(Qt::ALT | Qt::Key_1);
-    addAction(a);
+    int cur = mainTab->addTab(tableView, fileName); // tab index
+    mainTab->setCurrentIndex(cur);
 }
 
 void MainWindow::find()
@@ -499,13 +493,16 @@ void MainWindow::find()
     matchedIndexList.clear();
     findIndex = 0;
 
-    QTableView *tableView = static_cast<QTableView *>(tabWidget->currentWidget());
+    QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
     QStandardItemModel *model = static_cast<QStandardItemModel *>(tableView->model());
 
-    const QList<QStandardItem *> items =
-        model->findItems(value, Qt::MatchContains |
+    QList<QStandardItem *> items;
+    for (int i = 0; i < model->columnCount(); ++i)
+    {
+        items << model->findItems(value, Qt::MatchContains |
                                     Qt::MatchRecursive |
-                                    Qt::MatchFixedString);
+                                    Qt::MatchFixedString, i);
+    }
     for (auto &item : items)
     {
         matchedIndexList.append(model->indexFromItem(item));
@@ -555,7 +552,7 @@ void MainWindow::updateFindActions()
 // 跳转选择
 void MainWindow::selectAndGoTo(const QModelIndex &index)
 {
-    QTableView *tableView = static_cast<QTableView*>(tabWidget->currentWidget());
+    QTableView *tableView = static_cast<QTableView*>(mainTab->currentWidget());
 
     tableView->scrollTo(index, QAbstractItemView::PositionAtCenter);
     tableView->setCurrentIndex(index); // 并被selected, 如果可以
@@ -588,12 +585,14 @@ void MainWindow::buildGraphfromCsv()
         }
     }
     graph = new Graph(graphList);
+    readEdgeInfo();
     return;
 }
 
+// 生成最短路径和长度
 void MainWindow::generateRoutes()
 {
-    QTableView *tableView = static_cast<QTableView *>(tabWidget->currentWidget());
+    QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
     if (!tableView) return;
     QStandardItemModel *model = static_cast<QStandardItemModel*>(tableView->model());
 
@@ -603,8 +602,6 @@ void MainWindow::generateRoutes()
         QString edge2 = model->data(model->index(i, 1)).toString();
 
         Edge* startEdge = graph->getEdge(edge1);
-        qDebug() << "edge2 address: "
-                 << graph->getEdge(edge2);
         Edge* endEdge = graph->getEdge(edge2);  //
         if (!startEdge || !endEdge) continue;
 
@@ -613,7 +610,7 @@ void MainWindow::generateRoutes()
         route.setGraph(graph);
         route.generateRoute();
 
-        model->setData(model->index(i, 2), route.getLength());
+        model->setData(model->index(i, 2), QString("%1").arg(route.getLength()));
         model->setData(model->index(i, 3), route.getPath());
     }
 }
@@ -628,27 +625,30 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 
 void MainWindow::insertRow()
 {
-    QTableView *tableView = static_cast<QTableView *>(tabWidget->currentWidget());
+    QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
     QStandardItemModel *model = static_cast<QStandardItemModel*>(tableView->model());
     model->insertRow(model->rowCount());
 }
 
-//void MainWindow::addIndexComboBox(const QModelIndex &index)
-//{
-//    if (index.column() < 2)
-//    {
-//        QComboBox *edgeBox = new QComboBox(this);
-//        edgeBox->addItems(graph->getEdgeMap()->keys());
-
-//        QTableView *curView = static_cast<QTableView*>(tabWidget->currentWidget());
-//        QStandardItemModel *curModel = static_cast<QStandardItemModel*>(curView->model());
-//        curView->setIndexWidget(index, edgeBox);
-//        curModel->setData(index, edgeBox->currentData());
-//    }
-
-//}
-
 Graph* MainWindow::getGraph()
 {
     return graph;
+}
+
+void MainWindow::readEdgeInfo()
+{
+
+    int r = 0;
+    QTableWidget *table = infoWidget->getEdgeTable();
+    table->setRowCount(graph->getEdgeMap().size() - 1);
+
+    for (auto &edge:graph->getEdgeMap())
+    {
+        QString name = edge.first;
+        if (name == "NULL") continue;
+        int length = edge.second->getLength();
+        infoWidget->getEdgeTable()->setItem(r, 0, new QTableWidgetItem(name));
+        infoWidget->getEdgeTable()->setItem(r++, 1, new QTableWidgetItem(QString("%1").arg(length)));
+    }
+
 }

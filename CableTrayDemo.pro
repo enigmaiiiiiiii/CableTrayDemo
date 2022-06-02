@@ -14,14 +14,18 @@ SOURCES += \
     infowindow.cpp \
     main.cpp \
     mainwindow.cpp \
-    route.cpp
+    route.cpp \
+    routemodel.cpp \
+    tabindock.cpp
 
 HEADERS += \
     graph.h \
     helper.h \
     infowindow.h \
     mainwindow.h \
-    route.h
+    route.h \
+    routemodel.h \
+    tabindock.h
 
 FORMS += \
     mainwindow.ui

@@ -8,6 +8,8 @@
 class QTableView;
 class QTableWidget;
 class QStandardItemModel;
+class TabInDock;
+class QSpacerItem;
 
 class InfoWindow : public QWidget
 {
@@ -15,14 +17,23 @@ class InfoWindow : public QWidget
 public:
     explicit InfoWindow(QWidget *parent = nullptr);
     void setupDockWindows();
+    QTableWidget* getEdgeTable();
 
 signals:
 
 private:
+    void setupEdgeTab();
+    void setupLogTab();
+    QSize sizeHint() const;
+
+private:
+
+    TabInDock *infoTab;
     Graph *cableGraph;
-    QTableView *graphTableView;
+
     QTableWidget *dockTable;
     QStandardItemModel *dataModel;
+    QSpacerItem *HSpacer;
 };
 
 

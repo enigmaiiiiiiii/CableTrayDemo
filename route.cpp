@@ -100,7 +100,9 @@ QString Route::getPath()
 {
     return path;
 }
+
 void Route::addNecessaryPath()
 { }
+
 void Route::addForbiddenPath()
 { }

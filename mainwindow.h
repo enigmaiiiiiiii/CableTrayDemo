@@ -12,6 +12,7 @@ class QAction;
 class QTextEdit;
 class QStandardItemModel;
 class QTabWidget;
+class InfoWindow;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -34,11 +35,9 @@ private slots:
     void buildGraphfromCsv();
     void setupDockWindow();
 
-    void GraphView();
 private:
     void setupFileActions();
     void setupEditActions();
-    void setupDebugActions();
     void setupTabWidget();
     void setupContextMenuActions();
 
@@ -57,6 +56,7 @@ private:
     // data
     void setupRouteActions();
     void generateRoutes();
+    void readEdgeInfo();
 
     // event
     void contextMenuEvent(QContextMenuEvent *event) override;
@@ -79,7 +79,9 @@ private:
     QTextEdit *textEdit;
     QModelIndexList matchedIndexList;
     int findIndex;
-    QTabWidget *tabWidget;
+    QTabWidget *mainTab;
+    InfoWindow *infoWidget;
+
 
     QTableView *routeTableView;
     QStandardItemModel *exampleModel;

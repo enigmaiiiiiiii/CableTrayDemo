@@ -95,11 +95,11 @@ QList<QList<int>> Helper::listForGraph(int nodeCount)
             ret[i][i + 1] = QRandomGenerator::global()->generate() % 100;
             ret[i + 1][i] = ret[i][i + 1];
         }
-        int n = 3;
+        int n = 2;
         for (int j = i + 1; j < nodeCount; ++j )
         {
             if (n == 0) break;
-            if (QRandomGenerator::global()->generate() % 3 == 0)
+            if (QRandomGenerator::global()->generate() % 12 == 0)
             {
                 ret[i][j] = QRandomGenerator::global()->generate() % 100;
                 ret[j][i] = ret[i][j];
