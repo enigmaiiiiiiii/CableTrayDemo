@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "routemodel.h"
 #include "route.h"
 #include "infowindow.h"
 #include "helper.h"

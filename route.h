@@ -7,13 +7,19 @@ class Route
 {
 public:
     Route(Edge *start, Edge *end);
+    ~Route() = default;
+    Route()
     void setGraph(Graph *graph);
     void generateRoute();
-    void findShortest(int, int, int&);
     QString getPath();
     int getLength() const;
     void addNecessaryPath();
     void addForbiddenPath();
+    QString getCableStartName() const;
+    QString getCableEndName() const;
+
+private:
+    void findShortest(int, int, int&);
 
 private:
     Graph   *cableGraph;

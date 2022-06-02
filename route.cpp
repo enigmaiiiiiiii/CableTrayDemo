@@ -106,3 +106,13 @@ void Route::addNecessaryPath()
 
 void Route::addForbiddenPath()
 { }
+
+QString Route::getCableStartName() const
+{
+    return cableStart->getName();
+}
+
+QString Route::getCableEndName() const
+{
+    return cableEnd->getName();
+}
