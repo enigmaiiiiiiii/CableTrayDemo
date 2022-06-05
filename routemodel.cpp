@@ -1,16 +1,18 @@
 #include "routemodel.h"
-#include "route.h"
 
-RouteModel::RouteModel(QObject *parent)
-    : QAbstractItemModel{parent},
+#include "route.h"
+#include <QModelIndex>
+
+AttrModel::AttrModel(Route *root, QObject *parent)
+    : QStandardItemModel(parent),
+      route(root)
 {
 }
 
-
-QModelIndex RouteModel::index(int row, int column, const QModelIndex &parent) const 
+RouteModel::RouteModel(QObject *parent)
+  : QStandardItemModel{parent}
 {
-    Q_UNUSED(parent);
-    return createIndex(row, column);
+
 }
 
 // 获取数据
@@ -23,57 +25,80 @@ QVariant RouteModel::data(const QModelIndex &index, int role) const
     {
         switch (index.column())
         {
-            case 0:
-            return QString("%1").arg(index.row());
-            case 1:
-                return QVariant(routes[index.row()]->geCableStartName());
-            case 2:
-                return QVariant(routes[index.row()]->geCableEndName());
-            case 3:
-                return QVariant(routes[index.row()]->geCableLength());
-            case 4:
-                return QVariant(routes[index.row()]->gePath());
-            default:
-                return QVariant();
+        case 0:
+            return QVariant(routeList[index.row()]->edgeStart()->Name());
+        case 1:
+            return QVariant(routeList[index.row()]->edgeEnd()->Name());
+        case 2:
+            return QVariant(routeList[index.row()]->Length());
+        case 3:
+            return QVariant(routeList[index.row()]->Path());
+        default:
+            return QVariant();
         }
     }
     return QVariant();
 }
-int RouteModel::rowCount(const QModelIndex &parent) const
+
+bool RouteModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    Q_UNUSED(parent);
-    return routes.size();
+    if (role != Qt::EditRole)
+        return false;
+
+    Route *route = routeList[index.row()];
+    Graph *graph = route->graph();
+
+    if (role == Qt::EditRole) {
+        switch (index.column()) {
+        case 0:
+            route->setEdgeStart(graph->getEdge(value.toString()));
+            break;
+        case 1:
+            route->setEdgeEnd(graph->getEdge(value.toString()));
+            break;
+        default:
+            return false;
+        }
+        // 根据新起点, 新终点更新路径
+        routeList[index.row()]->generateRoute();
+        emit dataChanged(index, createIndex(index.row(), 3));
+        return true;
+    }
+    return false;
 }
 
-int RouteModel::columnCount(const QModelIndex &parent) const
+QVariant RouteModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    return 5;
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+        switch (section) {
+        case 0:
+            return QString("起点");
+        case 1:
+            return QString("终点");
+        case 2:
+            return QString("长度");
+        case 3:
+            return QString("路径");
+        }
+    }
+    return QVariant();
 }
 
-Qt::ItemFlags RouteModel::flags(const QModelIndex &index) const
+// 直接插入route数据
+bool RouteModel::addRoute(Route *item)
 {
-    if (!index.isValid())
-        return Qt::ItemIsEnabled;
-
-    return QAbstractItemModel::flags(index);
-}
-
-bool Route::addRoute(const Route *value)
-{
-    row = RoutesList.size();
-    RouteList.append(value);
+    int row = routeList.size();
+    routeList << item;
 
     QModelIndex c0 = createIndex(row, 0);
     QModelIndex c1 = createIndex(row, 1);
     QModelIndex c2 = createIndex(row, 2);
     QModelIndex c3 = createIndex(row, 3);
-    QModelIndex c4 = createIndex(row, 4);
 
-    setData(c0, c0.row(), role);
-    setData(c1, value.getCableStart());
-    setData(c2, value.getCableEndName());
-    setData(c3, value.getLength());
-    setData(c4, value.getPath());
+    setData(c0, item->edgeStart()->Name());
+    setData(c1, item->edgeEnd()->Name());
+    setData(c2, item->Length());
+    setData(c3, item->Path());
 
     return true;
 }

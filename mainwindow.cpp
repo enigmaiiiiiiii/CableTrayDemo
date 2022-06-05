@@ -1,9 +1,11 @@
 #include "mainwindow.h"
 #include "routemodel.h"
+#include "graph.h"
 #include "route.h"
 #include "infowindow.h"
 #include "helper.h"
 
+#include <QStandardItemModel>
 #include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
@@ -27,7 +29,6 @@
 #include <QMimeData>
 #include <QMimeDatabase>
 #include <QStringDecoder>
-#include <QStandardItemModel>
 #include <QTableView>
 #include <QDockWidget>
 #include <QTreeWidget>
@@ -184,9 +185,13 @@ void MainWindow::setupRouteActions()
     connect(a, &QAction::triggered, this, &MainWindow::buildGraphfromCsv);
     menu->addAction(a);
 
-    QAction *b = new QAction(icongraph, tr("生成路径"));
-    connect(b, &QAction::triggered, this, &MainWindow::generateRoutes);
+    QAction *b = new QAction(icongraph, tr("csv生成路径"));
+    connect(b, &QAction::triggered, this, &MainWindow::generateRoutesFromCsv);
     menu->addAction(b);
+
+    QAction *c = new QAction(icongraph, tr("计算路径"));
+    connect(c, &QAction::triggered,this, &MainWindow::caculateRoutes);
+    menu->addAction(c);
 
 }
 
@@ -231,7 +236,6 @@ void MainWindow::fileNew()
     QTableView *tableView = new QTableView(mainTab);
     QStandardItemModel *model = new QStandardItemModel(mainTab);
 
-    model->setHorizontalHeaderLabels(headers);
     tableView->setModel(model);
 
     int cur = mainTab->addTab(tableView, "");
@@ -275,67 +279,56 @@ bool MainWindow::loadRoutes(const QString &f)
     const QString &mimeTypeName = db.mimeTypeForFileNameAndData(f, data).name();
 
     // 读内容到Model
-    if (mimeTypeName == u"text/csv") // 判断类型是否为csv
+    if (mimeTypeName != u"text/csv") // 判断类型是否为csv
     {
-        QTableView *curView;
-        QStandardItemModel *curModel;
-        if (f == fileName) {  // 重新打开
-            curView = static_cast<QTableView *>(mainTab->currentWidget());
-            curModel = static_cast<QStandardItemModel *>(curView->model());
-        } else {  //
-            curModel = new QStandardItemModel(mainTab);
-            curModel->setHorizontalHeaderLabels(headers);
-
-            curView = new QTableView(mainTab);
-            curView->setModel(curModel);
-        }
-
-        QList<QByteArray> lines = data.split('\n');
-        for (int r = 1; r < lines.size(); ++r)
-        {
-            QList<QByteArray> dataList = lines.at(r).split(',');
-            QString data;
-            int flag = 0;
-            for (int c = 0; c < dataList.size(); ++c)
-            {
-                data = dataList.at(c).trimmed();
-                if (data.contains("\"") && flag == 0)
-                {
-                    flag = 1;
-                    data += ",";
-                }
-                else if (flag == 1)
-                {
-                    if (!data.contains("\""))
-                    {
-
-                        data += dataList.at(c) + ',';
-                    }
-                    else
-                    {
-                        data += dataList.at(c);
-                        QStandardItem *item = new QStandardItem(data.replace("\"", ""));
-                        curModel->setItem(r - 1, c, item);
-                        flag = 0;
-                    }
-                }
-                else
-                {
-                    QStandardItem *item = new QStandardItem(data);
-                    curModel->setItem(r - 1, c, item);
-                }
-            }
-        }
-
-        // 添加标签
+        return false;
+    }
+    QTableView *curView;
+    QStandardItemModel *curModel = new QStandardItemModel(mainTab);;
+    if (f != fileName) {  // 重新打开
+        curView = new QTableView(mainTab);;
         int cur = mainTab->addTab(curView, QFileInfo(f).baseName()); // tab index
         mainTab->setCurrentIndex(cur);
+    } else {
+        curView = static_cast<QTableView*>(mainTab->currentWidget());
     }
+
+    curView->setModel(curModel);
+
+    QList<QByteArray> lines = data.split('\n');
+    for (int r = 1; r < lines.size(); ++r) {
+        QList<QByteArray> dataList = lines.at(r).split(',');
+        QString data;
+        int flag = 0;
+        for (int c = 0; c < dataList.size(); ++c) {
+            data = dataList.at(c).trimmed();
+            if (data.contains("\"") && flag == 0) {
+                flag = 1;
+                data += ",";
+            }
+            else if (flag == 1) {
+                if (!data.contains("\"")) {
+
+                    data += dataList.at(c) + ',';
+                } else {
+                    data += dataList.at(c);
+                    QStandardItem *item = new QStandardItem(data.replace("\"", ""));
+                    curModel->setItem(r - 1, c, item);
+                    flag = 0;
+                }
+            } else {
+                QStandardItem *item = new QStandardItem(data);
+                curModel->setItem(r - 1, c, item);
+            }
+        }
+    }
+
 
     setCurrentFileName(f);
     file.close();
     return true;
 }
+
 
 // 设置当前文件名
 void MainWindow::setCurrentFileName(const QString &f)
@@ -464,16 +457,16 @@ void MainWindow::tabClose(const int &index)
     delete tabItem;
 }
 
-void MainWindow::tabCreate()
-{
-    QTableView *tableView = new QTableView(mainTab);
-    QStandardItemModel *model = new QStandardItemModel(mainTab);
-    model->setHorizontalHeaderLabels(headers);
-    tableView->setModel(model);
+//	void MainWindow::tabCreate()
+//	{
+//	    QTableView *tableView = new QTableView(mainTab);
+//	    QStandardItemModel *model = new QStandardItemModel(mainTab);
+//	    model->setHorizontalHeaderLabels(headers);
+//	    tableView->setModel(model);
 
-    int cur = mainTab->addTab(tableView, fileName); // tab index
-    mainTab->setCurrentIndex(cur);
-}
+//	    int cur = mainTab->addTab(tableView, fileName); // tab index
+//	    mainTab->setCurrentIndex(cur);
+//	}
 
 void MainWindow::find()
 {
@@ -495,25 +488,29 @@ void MainWindow::find()
     findIndex = 0;
 
     QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
-    QStandardItemModel *model = static_cast<QStandardItemModel *>(tableView->model());
+    QStandardItemModel *model = static_cast<QStandardItemModel*>(tableView->model());
 
-    QList<QStandardItem *> items;
-    for (int i = 0; i < model->columnCount(); ++i)
+    for (int j = 0; j < model->columnCount(); ++j)
     {
-        items << model->findItems(value, Qt::MatchContains |
-                                    Qt::MatchRecursive |
-                                    Qt::MatchFixedString, i);
+        const QList<QStandardItem *> items =
+            model->findItems(value, Qt::MatchContains |
+                                        Qt::MatchRecursive |
+                                        Qt::MatchFixedString, j);
+        for (auto &item : items)
+        {
+            matchedIndexList.append(model->indexFromItem(item));
+        }
+
     }
-    for (auto &item : items)
-    {
-        matchedIndexList.append(model->indexFromItem(item));
-    }
+
+
     statusBar()->showMessage(tr("%1 items found").arg(matchedIndexList.size()));
     updateFindActions();
     if (!matchedIndexList.isEmpty())
     {
         selectAndGoTo(matchedIndexList.constFirst()); // constFirst list的第一个元素
     }
+
 }
 
 void MainWindow::findNext()
@@ -565,8 +562,8 @@ void MainWindow::buildGraphfromCsv()
 
     fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
     fileDialog.setFileMode(QFileDialog::ExistingFile);
-
     fileDialog.setMimeTypeFilters({"text/csv"});
+
     if (fileDialog.exec() != QDialog::Accepted)
         return;
     const QString fn = fileDialog.selectedFiles().constFirst();
@@ -590,12 +587,75 @@ void MainWindow::buildGraphfromCsv()
     return;
 }
 
+void MainWindow::generateRoutesFromCsv()
+{
+    QFileDialog fileDialog(this, tr("打开路径文件..."));
+
+    fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    fileDialog.setFileMode(QFileDialog::ExistingFile);
+    fileDialog.setMimeTypeFilters({"text/csv"});
+
+    if (fileDialog.exec() != QDialog::Accepted)
+        return;
+    const QString fn = fileDialog.selectedFiles().constFirst();
+
+    QFile file(fn);
+    if (!file.open(QFile::ReadOnly))
+        return;
+
+    QByteArray data = file.readAll();
+    QMimeDatabase db;
+    const QString &mimeTypeName = db.mimeTypeForFileNameAndData(fn, data).name();
+
+    if (mimeTypeName != u"text/csv")
+    {
+        return;
+    }
+
+    QTableView *curView = new QTableView();
+    QStandardItemModel *curModel = new QStandardItemModel();
+    curView->setModel(curModel);
+
+    QList<QByteArray> lines = data.split('\n');
+    // 只读前两列
+    for (int r = 1; r < lines.size(); ++r)
+    {
+        QList<QByteArray> dataList = lines.at(r).split(',');
+
+        QString edgeName_1 = dataList.at(0).trimmed();
+        QString edgeName_2 = dataList.at(1).trimmed();
+        if (!graph->EdgeMap().contains(edgeName_1) ||
+            !graph->EdgeMap().contains(edgeName_2)) {
+            continue;
+        }
+
+        Route *route = new Route(graph, edgeName_1, edgeName_2);
+        QStandardItem *item1 = new QStandardItem(edgeName_1);
+        QStandardItem *item2 = new QStandardItem(edgeName_2);
+        QStandardItem *item3 = new QStandardItem(QString("%1").arg(route->Length()));
+        QStandardItem *item4 = new QStandardItem(route->Path());
+
+        curModel->setItem(r - 1, 0, item1);
+        curModel->setItem(r - 1, 1, item2);
+        curModel->setItem(r - 1, 2, item3);
+        curModel->setItem(r - 1, 3, item4);
+    }
+
+    // 添加标签
+    int cur = mainTab->addTab(curView, QFileInfo(fn).baseName()); // tab index
+    mainTab->setCurrentIndex(cur);
+
+    setCurrentFileName(fn);
+    file.close();
+}
+
 // 生成最短路径和长度
-void MainWindow::generateRoutes()
+void MainWindow::caculateRoutes()
 {
     QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
     if (!tableView) return;
     QStandardItemModel *model = static_cast<QStandardItemModel*>(tableView->model());
+    if (!model) return;
 
     for (int i = 0; i < model->rowCount(); ++i)
     {
@@ -611,24 +671,30 @@ void MainWindow::generateRoutes()
         route.setGraph(graph);
         route.generateRoute();
 
-        model->setData(model->index(i, 2), QString("%1").arg(route.getLength()));
-        model->setData(model->index(i, 3), route.getPath());
+        model->setData(model->index(i, 2), QString("%1").arg(route.Length()));
+        model->setData(model->index(i, 3), route.Path());
     }
 }
 
 void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 {
-    QMenu menu(this);
-
-    menu.addAction(actionInsertRow);
-    menu.exec(event->globalPos());
+    QWidget *child = static_cast<QTableView*>(childAt(event->globalPos()));
+    if (child->inherits("QTableView")) {
+        QMenu menu(this);
+        menu.addAction(actionInsertRow);
+        menu.exec(event->globalPos());
+    }
 }
 
 void MainWindow::insertRow()
 {
     QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
-    QStandardItemModel *model = static_cast<QStandardItemModel*>(tableView->model());
-    model->insertRow(model->rowCount());
+    if (!tableView) return;
+    QAbstractItemModel *model = tableView->model();
+    if (model) {
+        qDebug() << model->rowCount();
+        model->insertRow(model->rowCount());
+    }
 }
 
 Graph* MainWindow::getGraph()
@@ -638,18 +704,21 @@ Graph* MainWindow::getGraph()
 
 void MainWindow::readEdgeInfo()
 {
-
     int r = 0;
     QTableWidget *table = infoWidget->getEdgeTable();
-    table->setRowCount(graph->getEdgeMap().size() - 1);
+    table->setRowCount(graph->EdgeMap().size() - 1);
 
-    for (auto &edge:graph->getEdgeMap())
-    {
-        QString name = edge.first;
-        if (name == "NULL") continue;
-        int length = edge.second->getLength();
+    QMap<QString, Edge*>::const_iterator i = graph->EdgeMap().constBegin();
+    while (i != graph->EdgeMap().constEnd()) {
+        QString name = i.key();
+        if (name == "NULL")  {
+            ++i;
+            continue;
+        }
+        int length = i.value()->Length();
         infoWidget->getEdgeTable()->setItem(r, 0, new QTableWidgetItem(name));
         infoWidget->getEdgeTable()->setItem(r++, 1, new QTableWidgetItem(QString("%1").arg(length)));
+        ++i;
     }
 
 }

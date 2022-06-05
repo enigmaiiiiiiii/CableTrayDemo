@@ -1,4 +1,4 @@
-QT       += core gui axcontainer
+QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -15,8 +15,8 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     route.cpp \
-    routemodel.cpp \
-    tabindock.cpp
+    tabindock.cpp \
+    routemodel.cpp
 
 HEADERS += \
     graph.h \
@@ -24,11 +24,8 @@ HEADERS += \
     infowindow.h \
     mainwindow.h \
     route.h \
-    routemodel.h \
-    tabindock.h
-
-FORMS += \
-    mainwindow.ui
+    tabindock.h \
+    routemodel.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

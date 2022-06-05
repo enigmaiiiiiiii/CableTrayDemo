@@ -6,17 +6,21 @@
 class Route
 {
 public:
+    Route();
     Route(Edge *start, Edge *end);
+    Route(Graph*, const QString&, const QString&);
     ~Route() = default;
-    Route()
     void setGraph(Graph *graph);
+    Graph* graph();
     void generateRoute();
-    QString getPath();
-    int getLength() const;
+    QString Path();
+    int Length() const;
     void addNecessaryPath();
     void addForbiddenPath();
-    QString getCableStartName() const;
-    QString getCableEndName() const;
+    Edge* edgeStart() const;
+    Edge* edgeEnd() const;
+    void setEdgeStart(Edge*);
+    void setEdgeEnd(Edge*);
 
 private:
     void findShortest(int, int, int&);
@@ -25,8 +29,8 @@ private:
     Graph   *cableGraph;
     QString  path;
     int      length;
-    Edge*    cableStart;
-    Edge*    cableEnd;
+    Edge*    startEdge;
+    Edge*    endEdge;
     std::vector<int> dist;
 };
 

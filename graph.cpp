@@ -2,6 +2,7 @@
 #include <QString>
 #include <QSet>
 #include <map>
+#include <QDebug>
 
 // Node 
 int Node::No = 0;
@@ -24,14 +25,14 @@ int Node::getNodeCount() { return Node::No; }
 
 // edge
 Edge::Edge()
-  : TrayName("NULL"),
+  : trayName("NULL"),
     node1(0),
     node2(0),
     length(INT16_MAX)
 {
 }
 Edge::Edge(int n1, int n2, int length, const QString &name)
-    : TrayName(name),
+    : trayName(name),
       node1(n1),
       node2(n2),
       length(length)
@@ -40,7 +41,7 @@ Edge::Edge(int n1, int n2, int length, const QString &name)
 
 Edge &Edge::operator=(const Edge &edge)
 {
-    TrayName = edge.TrayName;
+    trayName = edge.trayName;
     node1 = edge.node1;
     node2 = edge.node2;
     length = edge.length;
@@ -48,10 +49,6 @@ Edge &Edge::operator=(const Edge &edge)
     return *this;
 }
 
-QString Edge::getName() {return TrayName;}
-int Edge::getNode1() const { return node1; }
-int Edge::getNode2() const { return node2; }
-int Edge::getLength() const { return length; }
 
 // 以命名边生成Graph
 Graph::Graph(std::vector<Edge> &edges)
@@ -60,11 +57,11 @@ Graph::Graph(std::vector<Edge> &edges)
     QSet<int> nodes;
     for (auto &edge : edges)
     {
-        nodes.insert(edge.getNode1());
-        nodes.insert(edge.getNode2());
+        nodes.insert(edge.Node1());
+        nodes.insert(edge.Node2());
     }
-    int nodeNum = nodes.size();
 
+    int nodeNum = nodes.size();
     std::vector<std::vector<int>> isFilled(nodeNum, std::vector<int>(nodeNum, 0));
 
     for (int i = 0; i < nodeNum; ++i)
@@ -75,9 +72,9 @@ Graph::Graph(std::vector<Edge> &edges)
 
     for (auto &edge : edges)
     {
-        edgeMap.insert({edge.getName(), &edge});
-        int start = edge.getNode1();
-        int end   = edge.getNode2();
+        edgeMap.insert(edge.Name(), &edge);
+        int start = edge.Node1();
+        int end   = edge.Node2();
 
         if (!isFilled[start][end])  // 放止重复填充
         {
@@ -94,6 +91,7 @@ Graph::Graph(QList<QList<int>> &edges)
     int nodeNum = edges.size();
     int edgeNum = 0;
     head = std::vector<std::vector<Edge>>(nodeNum, std::vector<Edge>(nodeNum, Edge()));  // 初始化二维vector
+
     for (int i = 0; i < nodeNum; ++i)
     {
         head[i][i] = Edge(i, i, edges[i][i], "NULL");
@@ -104,21 +102,23 @@ Graph::Graph(QList<QList<int>> &edges)
                 name = QString("NULL");
             } else {
                 name = QString("edge%1").arg(edgeNum++);
+                qDebug() <<"i=" << i
+                         << " j=" << j
+                         << " name=" << name;
             }
-
             head[i][j] = Edge(i, j, edges[i][j], name);
             head[j][i] = Edge(i, j, edges[i][j], name);
-            if (edgeMap.find(name) == edgeMap.end()) edgeMap.insert({name, &head[i][j]});
+            if (!edgeMap.contains(name)) edgeMap.insert(name, &head[i][j]);
         }
     }
 }
 
 void Graph::addEdge(Edge edge)
 {
-    int start = edge.getNode1();
-    int end   = edge.getNode2();
+    int start = edge.Node1();
+    int end   = edge.Node2();
     head[start][end] = edge;
-    edgeMap.insert({edge.getName(), &edge});
+    edgeMap.insert(edge.Name(), &edge);
 }
 
 std::vector<std::vector<Edge>> Graph::getHead(){ return head; }
@@ -127,15 +127,14 @@ unsigned int Graph::size() { return head.size(); }
 
 QString Graph::getTrayName(int start, int end)
 {
-    return head[start][end].getName();
+    return head[start][end].Name();
 }
 
 Edge* Graph::getEdge(const QString& name)
 {
-    return edgeMap[name];
+    if (edgeMap.contains(name))
+        return edgeMap[name];
+    return nullptr;
 }
 
-std::map<QString, Edge*> Graph::getEdgeMap()
-{
-    return edgeMap;
-}
+const QMap<QString, Edge*>& Graph::EdgeMap() { return edgeMap; }

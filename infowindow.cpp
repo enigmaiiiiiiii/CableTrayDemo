@@ -21,8 +21,8 @@ InfoWindow::InfoWindow(QWidget *parent)
     infoTab = new TabInDock(this);  //
     infoTab->setTabPosition(QTabWidget::South);
 
-    setupLogTab();
     setupEdgeTab();
+    setupLogTab();
 
     infoTab->show();
 }

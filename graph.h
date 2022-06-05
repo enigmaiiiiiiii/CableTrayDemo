@@ -44,18 +44,16 @@ public:
     Edge(int, int, int, const QString&);
     Edge &operator=(const Edge&);
 
-    QString getName();
-    int getNode1() const;
-    int getNode2() const;
-    int getLength() const;
-//    int getRouteCount() const;
+    inline QString Name() const {return trayName;}
+    inline int Node1() const { return node1; }
+    inline int Node2() const { return node2; }
+    inline int Length() const { return length; }
 
 private:
-    QString TrayName;
+    QString trayName;
     int node1;
     int node2;
     int length;
-//    int routeCount;
 };
 
 class Graph
@@ -70,11 +68,11 @@ public:
     QString getTrayName(int start, int end);
     void addEdge(Edge);
     Edge* getEdge(const QString&);
-    std::map<QString, Edge*> getEdgeMap();
+    const QMap<QString, Edge*>& EdgeMap();
 
 private:
     std::vector<std::vector<Edge>> head;
-    std::map<QString, Edge*> edgeMap;
+    QMap<QString, Edge*> edgeMap;
 };
 
 #endif // GRAPH_H
