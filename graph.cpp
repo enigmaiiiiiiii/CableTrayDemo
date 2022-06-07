@@ -102,9 +102,6 @@ Graph::Graph(QList<QList<int>> &edges)
                 name = QString("NULL");
             } else {
                 name = QString("edge%1").arg(edgeNum++);
-                qDebug() <<"i=" << i
-                         << " j=" << j
-                         << " name=" << name;
             }
             head[i][j] = Edge(i, j, edges[i][j], name);
             head[j][i] = Edge(i, j, edges[i][j], name);

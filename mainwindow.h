@@ -13,6 +13,7 @@ class QTextEdit;
 class QStandardItemModel;
 class QTabWidget;
 class InfoWindow;
+class QTreeWidget;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -63,6 +64,7 @@ private:
     void contextMenuEvent(QContextMenuEvent *event) override;
     void insertRow();
     void addIndexComboBox(const QModelIndex &index);
+    void readRouteAttr();
 
 private:
     QAction *actionSave;
@@ -81,10 +83,10 @@ private:
     QModelIndexList matchedIndexList;
     int findIndex;
     QTabWidget *mainTab;
+    QTreeWidget *dockTree;
     InfoWindow *infoWidget;
 
 
-    QTableView *routeTableView;
     QStandardItemModel *exampleModel;
     QStringList headers;
     Graph *graph;

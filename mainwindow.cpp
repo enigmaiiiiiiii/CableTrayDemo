@@ -4,6 +4,7 @@
 #include "route.h"
 #include "infowindow.h"
 #include "helper.h"
+#include "comboboxdelegate.h"
 
 #include <QStandardItemModel>
 #include <QActionGroup>
@@ -44,30 +45,31 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     // qssfile
-    QFile *qssFile = new QFile(":/qss/style.qss", this);
-    qssFile->open(QFile::ReadOnly);
-    QString styleSheet = tr(qssFile->readAll());
-    setStyleSheet(styleSheet);
-    qssFile->close();
+//    QFile *qssFile = new QFile(":/qss/style.qss", this);
+//    qssFile->open(QFile::ReadOnly);
+//    QString styleSheet = tr(qssFile->readAll());
+//    setStyleSheet(styleSheet);
+//    qssFile->close();
 
     // graph
-    QList<QList<int>> graphInit = Helper::listForGraph(20);
+    QList<QList<int>> graphInit = Helper::listForGraph(30);
     graph = new Graph(graphInit);
 
-    // maintab
+    // 主窗口tab
     mainTab = new QTabWidget(this);
     mainTab->setTabsClosable(true);
     mainTab->setVisible(true);
     setCentralWidget(mainTab);
     connect(mainTab, &QTabWidget::tabCloseRequested, this, &MainWindow::tabClose);
 
-    // 文件动作
+    // 主窗口动作
     setupFileActions();
     setupEditActions();
     setupDockWindow();
     setupContextMenuActions();
     setCurrentFileName(QString());
     readEdgeInfo();
+    statusBar();
 
     showMaximized();
 
@@ -98,6 +100,7 @@ void MainWindow::setupFileActions()
     const QIcon openIcon = QIcon::fromTheme("document-open", QIcon(rsrcPath + "/fileopen.png")); // 后备方案
     a = menu->addAction(openIcon, "&Open...", this, &MainWindow::fileOpen);
     a->setShortcut(QKeySequence::Open);
+    a->setStatusTip(tr("打开csv文件"));
     tb->addAction(a);
 
     // 分隔线
@@ -187,12 +190,12 @@ void MainWindow::setupRouteActions()
 
     QAction *b = new QAction(icongraph, tr("csv生成路径"));
     connect(b, &QAction::triggered, this, &MainWindow::generateRoutesFromCsv);
+    b->setStatusTip(tr("打开csv文件并生成路径"));
     menu->addAction(b);
 
     QAction *c = new QAction(icongraph, tr("计算路径"));
-    connect(c, &QAction::triggered,this, &MainWindow::caculateRoutes);
+    connect(c, &QAction::triggered, this, &MainWindow::caculateRoutes);
     menu->addAction(c);
-
 }
 
 void MainWindow::setupContextMenuActions()
@@ -203,22 +206,22 @@ void MainWindow::setupContextMenuActions()
 
 void MainWindow::setupDockWindow()
 {
+    // 左侧
     QDockWidget *attrDock = new QDockWidget(tr("特性"), this);
-    QTreeWidget *dockTree = new QTreeWidget(this);
+    dockTree = new QTreeWidget(this);
 
-    QStringList headers;
-    headers << "attr"
-            << "val";
-    dockTree->setHeaderLabels(headers);
+    QStringList attrHeaders;
+    attrHeaders << "attr"
+                << "val";
+    dockTree->setHeaderLabels(attrHeaders);
     attrDock->setWidget(dockTree);
     addDockWidget(Qt::LeftDockWidgetArea, attrDock);
 
     QAction *a = attrDock->toggleViewAction();
     a->setShortcut(Qt::CTRL | Qt::Key_1);
-    attrDock->hide();
-
     addAction(a);
 
+    // 右侧停靠窗口 
     QDockWidget *infoDock = new QDockWidget(tr(""), this);
     addDockWidget(Qt::RightDockWidgetArea, infoDock);
     infoWidget = new InfoWindow(this);
@@ -279,21 +282,30 @@ bool MainWindow::loadRoutes(const QString &f)
     const QString &mimeTypeName = db.mimeTypeForFileNameAndData(f, data).name();
 
     // 读内容到Model
-    if (mimeTypeName != u"text/csv") // 判断类型是否为csv
-    {
+    if (mimeTypeName != u"text/csv") { // 判断类型是否为csv 
         return false;
     }
+
     QTableView *curView;
     QStandardItemModel *curModel = new QStandardItemModel(mainTab);;
+    curModel->setHorizontalHeaderLabels(headers);
+    QItemSelectionModel *selectionModel = new QItemSelectionModel(curModel);
+    connect(selectionModel, &QItemSelectionModel::currentRowChanged, this, &MainWindow::readRouteAttr);
+
+
     if (f != fileName) {  // 重新打开
-        curView = new QTableView(mainTab);;
-        int cur = mainTab->addTab(curView, QFileInfo(f).baseName()); // tab index
+        curView = new QTableView(mainTab);
+        ComboBoxDelegate *cboDelegate = new ComboBoxDelegate(graph->EdgeMap().keys());
+        curView->setItemDelegateForColumn(0, cboDelegate);
+        curView->setItemDelegateForColumn(1, cboDelegate);
+        int cur = mainTab->addTab(curView, QFileInfo(f).fileName()); // tab index
         mainTab->setCurrentIndex(cur);
     } else {
         curView = static_cast<QTableView*>(mainTab->currentWidget());
     }
 
     curView->setModel(curModel);
+    curView->setSelectionModel(selectionModel);
 
     QList<QByteArray> lines = data.split('\n');
     for (int r = 1; r < lines.size(); ++r) {
@@ -308,7 +320,6 @@ bool MainWindow::loadRoutes(const QString &f)
             }
             else if (flag == 1) {
                 if (!data.contains("\"")) {
-
                     data += dataList.at(c) + ',';
                 } else {
                     data += dataList.at(c);
@@ -323,12 +334,10 @@ bool MainWindow::loadRoutes(const QString &f)
         }
     }
 
-
     setCurrentFileName(f);
     file.close();
     return true;
 }
-
 
 // 设置当前文件名
 void MainWindow::setCurrentFileName(const QString &f)
@@ -365,7 +374,6 @@ bool MainWindow::fileSave()
     QStandardItemModel *model = static_cast<QStandardItemModel *>(tableView->model());
 
     QTextStream out(&file);
-
     // 保存 首行
     for (int i = 0; i < model->columnCount(); ++i)
     {
@@ -398,7 +406,7 @@ bool MainWindow::fileSave()
             } else {
                 if (r < model->rowCount() - 1)
                 {
-                    out << "\r\n";
+                    out << "\r\n";  // 非最后一行后加换行
                 }
             }
         }
@@ -613,8 +621,17 @@ void MainWindow::generateRoutesFromCsv()
     }
 
     QTableView *curView = new QTableView();
-    QStandardItemModel *curModel = new QStandardItemModel();
+    curView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    QStandardItemModel *curModel = new QStandardItemModel(mainTab);
+    curModel->setHorizontalHeaderLabels(headers);
+    QItemSelectionModel *selectionModel = new QItemSelectionModel(curModel);
+    ComboBoxDelegate *cboDelegate = new ComboBoxDelegate(graph->EdgeMap().keys());
+
     curView->setModel(curModel);
+    curView->setSelectionModel(selectionModel);
+    curView->setItemDelegateForColumn(0, cboDelegate);
+    curView->setItemDelegateForColumn(1, cboDelegate);
+    connect(selectionModel, &QItemSelectionModel::currentRowChanged, this, &MainWindow::readRouteAttr);
 
     QList<QByteArray> lines = data.split('\n');
     // 只读前两列
@@ -682,7 +699,7 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
     if (child->inherits("QTableView")) {
         QMenu menu(this);
         menu.addAction(actionInsertRow);
-        menu.exec(event->globalPos());
+        menu.exec(event->globalPos());  // 阻塞
     }
 }
 
@@ -690,9 +707,13 @@ void MainWindow::insertRow()
 {
     QTableView *tableView = static_cast<QTableView *>(mainTab->currentWidget());
     if (!tableView) return;
+
+    const QModelIndex index = tableView->selectionModel()->currentIndex();
     QAbstractItemModel *model = tableView->model();
+    if (!model->insertRow(index.row() + 1))
+        return;
+
     if (model) {
-        qDebug() << model->rowCount();
         model->insertRow(model->rowCount());
     }
 }
@@ -721,4 +742,29 @@ void MainWindow::readEdgeInfo()
         ++i;
     }
 
+}
+
+void MainWindow::readRouteAttr()
+{
+    dockTree->clear();
+    QTableView *curTable = static_cast<QTableView *>(mainTab->currentWidget());
+    QStandardItemModel *curModel = static_cast<QStandardItemModel*>(curTable->model());
+
+    QString edge1 = curModel->data(curModel->index(curTable->currentIndex().row(), 0)).toString();
+    QString edge2 = curModel->data(curModel->index(curTable->currentIndex().row(), 1)).toString();
+
+    QTreeWidgetItem *item1 = new QTreeWidgetItem(dockTree);
+    item1->setText(0, tr("起点"));
+    item1->setText(1, edge1);
+    QTreeWidgetItem *item2 = new QTreeWidgetItem(dockTree);
+    item2->setText(0, tr("终点"));
+    item2->setText(1, edge2);
+    QTreeWidgetItem *item3 = new QTreeWidgetItem(dockTree);
+    item3->setText(0, tr("其它特性"));
+    QTreeWidgetItem *item4 = new QTreeWidgetItem(item3);
+    item4->setText(0, tr("长度"));
+    item4->setText(1, curModel->data(curModel->index(curTable->currentIndex().row(), 2)).toString());
+    QTreeWidgetItem *item5 = new QTreeWidgetItem(item3);
+    item5->setText(0, tr("路径"));
+    item5->setText(1, curModel->data(curModel->index(curTable->currentIndex().row(), 3)).toString());
 }

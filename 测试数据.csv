@@ -1,0 +1,7 @@
+起点,终点,长度,路径
+edge2,edge28,137,edge2->edge6->edge29->edge28
+edge9,edge23,142,edge9->edge24->edge22->edge23
+edge1,edge8,47,edge1->edge14->edge12->edge8
+edge0,edge45,97,edge0->edge1->edge28->edge29->edge30
+edge11,edge27
+edge28,edge34
