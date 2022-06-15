@@ -1,4 +1,6 @@
 #include "helper.h"
+#include "dbconnector.h"
+#include "route.h"
 
 #include <QStandardItemModel>
 #include <QTextStream>
@@ -8,37 +10,15 @@
 #include <QDebug>
 #include <QString>
 #include <QIODevice>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 
 Helper::Helper()
 { }
 
 // 随机生成无向图
-Graph Helper::GenerateRandomGraph(int nodeNum)
+void Helper::GenerateRandomGraph()
 {
-
-    std::vector<Edge> edges;
-    for (int i = 0; i < nodeNum; ++i)
-    {
-        for (int j = 0; j < nodeNum; ++j)
-        {
-            if (i == j)
-            {
-                edges.emplace_back(i, j, 0, "NULL");
-            }
-
-            QString name1 = QString("edge%1-%2").arg(i).arg(j);
-            QString name2 = QString("edge%1-%2").arg(j).arg(i);
-            if (QRandomGenerator::global()->generate() < INT_MAX / 3)
-            {
-                int randLength = rand() % 100;
-                edges.emplace_back(i, j, randLength, name1);
-                edges.emplace_back(j, i, randLength, name2);
-            }
-        }
-    }
-
-    qDebug() << edges.size();
-    return Graph(edges);
 }
 
 void Helper::saveAsCsv(QStandardItemModel *model, const QString &fileName)
@@ -87,20 +67,16 @@ void Helper::saveAsCsv(QStandardItemModel *model, const QString &fileName)
 QList<QList<int>> Helper::listForGraph(int nodeCount)
 {
     QList<QList<int>> ret(nodeCount, QList<int>(nodeCount, INT16_MAX));
-    for (int i = 0; i < nodeCount; ++i)
-    {
+    for (int i = 0; i < nodeCount; ++i) {
         ret[i][i] = 0;
-        if (i < nodeCount - 1)
-        {
+        if (i < nodeCount - 1) {
             ret[i][i + 1] = QRandomGenerator::global()->generate() % 100;
             ret[i + 1][i] = ret[i][i + 1];
         }
         int n = 2;
-        for (int j = i + 1; j < nodeCount; ++j )
-        {
+        for (int j = i + 1; j < nodeCount; ++j ) {
             if (n == 0) break;
-            if (QRandomGenerator::global()->generate() % 12 == 0)
-            {
+            if (QRandomGenerator::global()->generate() % 12 == 0) {
                 ret[i][j] = QRandomGenerator::global()->generate() % 100;
                 ret[j][i] = ret[i][j];
                 n--;
@@ -108,4 +84,45 @@ QList<QList<int>> Helper::listForGraph(int nodeCount)
         }
     }
     return ret;
+}
+
+void Helper::buildRandomDataBase(DbConnector *dbConn)
+{
+    QList<QList<int>> graphList = listForGraph(40);
+
+    for (int i = 0; i < graphList.size(); i++) {
+        QString name = QString("Node%1").arg(i);
+        Node node = Node(name);
+        dbConn->addNodeRecord(&node);
+    }
+
+    QList<Edge> edges;
+    int count = 0;
+
+    for (int i = 0; i < graphList.size(); i++) {
+        for (int j = i + 1; j < graphList.size(); j++) {
+            if (graphList[i][j] != INT16_MAX) {
+                Edge edge = Edge(QString("Edge%1").arg(count++), i, j, graphList[i][j]);
+                dbConn->addEdgeRecord(&edge);
+                edges.append(edge);
+            }
+        }
+    }
+
+    Graph graph(edges);
+    dbConn->addGraphRecord(&graph);
+
+    for (int i = 0; i < graphList.size(); i++) {
+        int start = QRandomGenerator::global()->generate() % graphList.size();
+        int end = QRandomGenerator::global()->generate() % graphList.size();
+        if (start != end)
+        {
+            Edge startEdge = edges[start];
+            Edge endEdge = edges[end];
+            Route route(&graph, startEdge.Name(), endEdge.Name());
+            dbConn->addRouteRecord(&route);
+        } else {
+            i--;
+        }
+    }
 }

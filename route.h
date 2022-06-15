@@ -13,14 +13,13 @@ public:
     void setGraph(Graph *graph);
     Graph* graph();
     void generateRoute();
-    QString Path();
+    QString Path() const;
     int Length() const;
-    void addNecessaryPath();
-    void addForbiddenPath();
-    Edge* edgeStart() const;
-    Edge* edgeEnd() const;
     void setEdgeStart(Edge*);
     void setEdgeEnd(Edge*);
+    Edge* edgeStart() const;
+    Edge* edgeEnd() const;
+
 
 private:
     void findShortest(int, int, int&);

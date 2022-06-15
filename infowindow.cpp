@@ -64,12 +64,10 @@ void InfoWindow::setupLogTab()
 
     btnLayout->addWidget(btnLogClear);
     btnLayout->addWidget(btnLogSave);
-
     btnLayout->addItem(HSpacer);
 
     widgetLayout->addLayout(btnLayout);
     infoTab->addTab(logInfo, tr("日  志"));
-
 }
 
 void InfoWindow::setupEdgeTab()

@@ -1,0 +1,1 @@
+create table Node(id int primary key, x double, y double, z double, description VARCHAR(200))

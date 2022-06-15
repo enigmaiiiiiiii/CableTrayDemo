@@ -2,6 +2,8 @@
 #define HELPER_H
 
 #include "graph.h"
+#include "dbconnector.h"
+#include <QSqlDatabase>
 
 class QStandardItemModel;
 
@@ -13,10 +15,11 @@ public:
     static void GenerateRoute(Graph &graph, int start, int end);
     static bool isOverLoad();
     static void routeLength();
-    static Graph GenerateRandomGraph(int nodeNum);
+    static void GenerateRandomGraph();
     static void saveAsCsv(QStandardItemModel *model, const QString &fileName);
     static void graphSaveAsCsv(Graph *graph, const QString &fileName);
     static QList<QList<int>> listForGraph(int nodeCount);
+    static void buildRandomDataBase(DbConnector *dbConn);
 };
 
 #endif // HELPER_H

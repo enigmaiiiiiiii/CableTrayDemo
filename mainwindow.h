@@ -14,6 +14,8 @@ class QStandardItemModel;
 class QTabWidget;
 class InfoWindow;
 class QTreeWidget;
+class QSqlTableModel;
+class QComboBox;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -26,10 +28,9 @@ public:
 
     bool loadRoutes(const QString &f);
     Graph* getGraph();
-public slots:
-    void fileNew();
 
 private slots:
+    void fileNew();
     void fileOpen();
     bool fileSave();
     bool fileSaveAs();
@@ -41,6 +42,7 @@ private:
     void setupEditActions();
     void setupTabWidget();
     void setupContextMenuActions();
+    void setupTestAction();
 
     // ui
     void setCurrentFileName(const QString &fileName);
@@ -52,13 +54,13 @@ private:
     bool maybeSave();
     void tabClose(const int&);
     void tabCreate();
-    void getTabModel();
 
     // data
     void setupRouteActions();
     void generateRoutesFromCsv();
     void caculateRoutes();
     void readEdgeInfo();
+    void generateTestData();
 
     // event
     void contextMenuEvent(QContextMenuEvent *event) override;
@@ -79,17 +81,17 @@ private:
     QAction *actionInsertRow;
 
     QString fileName;
-    QTextEdit *textEdit;
     QModelIndexList matchedIndexList;
     int findIndex;
     QTabWidget *mainTab;
     QTreeWidget *dockTree;
     InfoWindow *infoWidget;
-
-
-    QStandardItemModel *exampleModel;
+    QStandardItemModel *fileModel;
+    QSqlTableModel *sqlModel;
     QStringList headers;
     Graph *graph;
-
+    QTableView *fileView;
+    QTableView *sqlView;
+    QComboBox *tableCbx;
 };
 #endif // MAINWINDOW_H

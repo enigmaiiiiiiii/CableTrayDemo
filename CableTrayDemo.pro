@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     comboboxdelegate.cpp \
+    dbconnector.cpp \
     graph.cpp \
     helper.cpp \
     infowindow.cpp \
@@ -17,17 +18,16 @@ SOURCES += \
     mainwindow.cpp \
     route.cpp \
     tabindock.cpp \
-    routemodel.cpp
 
 HEADERS += \
     comboboxdelegate.h \
+    dbconnector.h \
     graph.h \
     helper.h \
     infowindow.h \
     mainwindow.h \
     route.h \
     tabindock.h \
-    routemodel.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -36,3 +36,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     src.qrc
+
+FORMS += \
+    sqlTab.ui
